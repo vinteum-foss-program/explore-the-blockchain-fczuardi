@@ -10,10 +10,14 @@ txdata=$(bitcoin-cli getrawtransaction $txid 2)
 # present in the redeem script
 # the txinwitness here has 3 elements, 0-signature, 1-control byte and 2-the redeem script
 
-input_0_redeem_script=$(echo $txdata | jq -r .vin[0].txinwitness[2])
-decoded_redeem_script=$(bitcoin-cli decodescript ${input_0_redeem_script})
+signature=$(echo $txdata | jq -r .vin[0].txinwitness[0])
+control_byte=$(echo $txdata | jq -r .vin[0].txinwitness[1])
+redeem_script=$(echo $txdata | jq -r .vin[0].txinwitness[2])
 
-# the redeem script contains 2 pubkeys, one for each branch of an IF operation
+decoded_redeem_script=$(bitcoin-cli decodescript ${redeem_script})
+
+# after reading the decoded redeem script
+# it can be interpreted as containing 2 pubkeys, one for each branch of an IF operation
 # the control byte in the input shows that the branch used was the IF part and not the ELSE
 # so the pubkey must be the first one
 pubkey=$(echo $decoded_redeem_script | jq -r '.asm | split(" ") | .[1]')
