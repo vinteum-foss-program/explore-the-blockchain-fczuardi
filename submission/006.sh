@@ -5,8 +5,9 @@
 # get block data given a block height
 get_block_from_block_height(){
   block_height=$1
+  verbosity=$2
   block_hash=$(bitcoin-cli getblockhash $block_height)
-  bitcoin-cli getblock $block_hash
+  bitcoin-cli getblock $block_hash $verbosity
 }
 
 # get first transaction in a block (coinbase tx)
@@ -19,15 +20,10 @@ get_coinbase_tx_from_block(){
 find_tx_with_input(){
   input=$1
   block_height=$2
-  block=$(get_block_from_block_height $block_height)
-  transactions=$(echo $block | jq -r .tx[])
-  for txid in $transactions;do
-    tx_inputs=$(bitcoin-cli getrawtransaction $txid true | jq -r .vin[].txid)
-    if echo "$tx_inputs" | grep -q "$input"; then  # Check if input matches any txid in the inputs
-      echo $txid
-      return 0
-    fi
-  done
+  block=$(get_block_from_block_height $block_height 2)
+  echo $block | jq -r \
+    --arg input "$input" \
+    '.tx[] | select(.vin[].txid == $input) | .txid'
 }
 
 coinbase_tx=$(get_coinbase_tx_from_block "$(get_block_from_block_height 256128)")
